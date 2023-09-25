@@ -1,62 +1,81 @@
-import time
+import tkinter as tk
+from datetime import datetime, timedelta
 
-class Stopwatch:
+
+class StopwatchApp:
     def __init__(self):
-        self.start_time = None   # Время начала работы секундомера
-        self.pause_time = None   # Время начала паузы (если была)
-        self.paused_duration = 0 # Общая продолжительность паузы
-        
-    def start(self):
-        self.start_time = time.time()
-        print("Секундомер запущен.")
-    
-    def pause(self):
-        if not self.start_time:
-            print("Ошибка: Секундомер еще не запущен.")
-            return
+        self.root = tk.Tk()
+        self.root.title("Секундомер")
+        self.root.geometry("400x300")
 
-        if self.pause_time:
-            print("Ошибка: Секундомер уже находится в режиме паузы.")
-            return
-
-        self.pause_time = time.time()
-        print("Секундомер приостановлен.")
-    
-    def resume(self):
-        if not self.start_time:
-            print("Ошибка: Секундомер еще не запущен.")
-            return
-
-        if not self.pause_time:
-            print("Ошибка: Секундомер не находится в режиме паузы.")
-            return
-        
-        self.paused_duration += time.time() - self.pause_time
-        self.pause_time = None
-        print("Секундомер возобновлен.")
-    
-    def stop(self):
-        if not self.start_time:
-            print("Ошибка: Секундомер еще не запущен.")
-            return
-        
-        elapsed_time = time.time() - self.start_time - self.paused_duration
         self.start_time = None
-        self.pause_time = None
-        self.paused_duration = 0
-        print("Секундомер остановлен.")
-        print("Прошло времени: {:.2f} секунд.".format(elapsed_time))
+        self.elapsed_time = timedelta(0)
+        self.paused_time = timedelta(0)
+
+        self.time_label = tk.Label(self.root, text="00:00:00.000", font=("Arial", 24))
+        self.time_label.pack(pady=20)
+
+        start_button = tk.Button(self.root, text="Старт", command=self.start)
+        start_button.pack()
+
+        pause_button = tk.Button(self.root, text="Пауза", command=self.pause)
+        pause_button.pack()
+
+        resume_button = tk.Button(self.root, text="Возобновить", command=self.resume)
+        resume_button.pack()
+
+        stop_button = tk.Button(self.root, text="Стоп", command=self.stop)
+        stop_button.pack()
+
+        self.root.protocol("WM_DELETE_WINDOW", self.close)
+
+    def start(self):
+        if self.start_time is None:
+            current_time = datetime.now()
+            self.start_time = current_time
+            self.paused_time = current_time
+            self.elapsed_time = timedelta(0)
+
+            self.update_time_label()
+
+    def pause(self):
+        if self.start_time and self.paused_time == self.start_time:
+            self.paused_time = datetime.now()
+
+    def resume(self):
+        if self.start_time and self.paused_time != self.start_time:
+            pause_duration = datetime.now() - self.paused_time
+            self.start_time += pause_duration
+            self.paused_time = self.start_time
+
+    def stop(self):
+        if self.start_time:
+            self.previous_elapsed_time = self.elapsed_time + datetime.now() - self.start_time
+            self.start_time = None
+            self.elapsed_time = timedelta(0)
+            self.paused_time = timedelta(0)
+            self.update_time_label()
+
+    def update_time_label(self):
+        if self.start_time:
+            if self.paused_time != self.start_time:
+                elapsed_time = datetime.now() - self.start_time - (datetime.now() - self.paused_time)
+            else:
+                elapsed_time = datetime.now() - self.start_time
+
+            elapsed_str = str(elapsed_time)
+            milliseconds = int(elapsed_time.microseconds / 1000)
+            self.time_label.config(text=f"{elapsed_str[:-7]}.{milliseconds:03d}")
+
+            self.root.after(50, self.update_time_label)
+
+    def close(self):
+        self.root.quit()
+
+    def run(self):
+        self.root.mainloop()
 
 
-stopwatch = Stopwatch()
-
-stopwatch.start()
-time.sleep(2)
-
-stopwatch.pause()
-time.sleep(1)
-
-stopwatch.resume()
-time.sleep(3)
-
-stopwatch.stop()
+if __name__ == "__main__":
+    app = StopwatchApp()
+    app.run()
